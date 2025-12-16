@@ -1,96 +1,75 @@
-#include <stdio.h>
 #include <iostream>
 #include <vector>
 #include <queue>
-#include <unordered_map>
-#include <algorithm>
 
 using namespace std;
 
-
-
-int main() {
-    int nIntersections = 0;
-    int nTrucks;
-    int m1, m2;
-    int nConnection;
-
-    cin >> nIntersections >> nTrucks;
-    cin >> m1 >> m2;
-    cin >> nConnection;
-
-    vector<int> L;
-    queue<int> Q;
-    vector<int> inDegree(nIntersections + 1);
-    vector<vector<int>> adj(nIntersections + 1);
-    vector<unordered_map<int, int>> dp(nIntersections + 1);
-
-    for (int i = 1; i <= nConnection; i++) {
-        int a, b;
+int main(){
+    ios::sync_with_stdio(0);
+    cin.tie(0);
+    vector<int> in_degree;
+    int n, m, m1, m2, k, a, b;
+    cin >> n >> m >> m1 >> m2 >> k;
+    vector<vector<int>>adj(n+1);
+    vector<vector<int>> caminhos(n+1, vector<int>(n+1, 0));
+    in_degree.resize(n+1);
+    for(int i = k; i>0 ;i--){
         cin >> a >> b;
-        inDegree[b]++;
         adj[a].push_back(b);
+        in_degree[b]++;
     }
- 
-    // Topological Sort using Kahn's Algorithm
-    //caso esteja lento usar matriz de adjacencia
-    for (int i = 1; i <= nIntersections; i++) {
-        if (inDegree[i] == 0) {
-            Q.push(i);
+    vector<vector<pair<int,int>>> pares(m2+1);
+    vector<int> order;
+    order.reserve(n);
+
+    queue<int> fila_temp;
+    for(int i = 1; i <= n; i++){
+        if(in_degree[i] == 0){
+            fila_temp.push(i);
         }
     }
-    while (!Q.empty()) {
-        int current = Q.front();
-        Q.pop();
-        L.push_back(current);
-
-        for (int neighborId : adj[current]) {
-            inDegree[neighborId]--;
-            if (inDegree[neighborId] == 0) {
-                Q.push(neighborId);
+    while(!fila_temp.empty()){
+        int u = fila_temp.front();
+        fila_temp.pop();
+        order.push_back(u);
+        
+        for(int v : adj[u]){
+            in_degree[v]--;
+            if(in_degree[v] == 0){
+                fila_temp.push(v);
             }
         }
     }
 
 
 
-    for (int i = (int)L.size() - 1; i >= 0 ; i--) {
-        int topo = L[i];
-        for (int j : adj[topo]) {
-            dp[topo][j] = (dp[topo][j] + 1) % nTrucks;
-            for (auto k = dp[j].begin(); k != dp[j].end(); ++k) {
-                int key = k->first;
-                int path = k->second;
-                dp[topo][key] += path;
-                if (dp[topo][key] >= nTrucks) {
-                    dp[topo][key] %= nTrucks;
+    for (int i = 1; i<= n;i++){
+        caminhos[i][i] = 1;
+        for (int y : order) {
+            for(int ant : adj[y]){
+                caminhos[i][ant] += caminhos[i][y];
+                if (caminhos[i][ant] > m)
+                    caminhos[i][ant] -= m;
                 }
-            }        
-        }
-    }
-
-      // Collect pairs per truck number
-    vector<vector<pair<int,int>>> pares(nConnection + 1);
-    for (int a = 1; a <= nIntersections; a++) {
-        for (auto it = dp[a].begin(); it != dp[a].end(); ++it) {
-            int b = it->first;
-            int count = it->second;
-            int num_cam = 1 + (count % nTrucks);
-            if (num_cam >= m1 && num_cam <= m2 && a != b) {
-                cout << a << ' ' << b << ' ' << count << '\n';
-                pares[num_cam].push_back(make_pair(a, b));
+        }    
+        for (int b = 1; b<=n;b++){
+            if(i == b || caminhos[i][b] == 0) continue;
+            int num_cam = 1 + caminhos[i][b]%m;
+            if(num_cam>=m1 && num_cam<=m2){
+                pares[num_cam].emplace_back(i,b);
             }
         }
     }
-
-    // Sort pairs lexicographically per truck and print
-    for (int t = m1; t <= m2; t++) {
-        sort(pares[t].begin(), pares[t].end());
-        cout << 'C' << t;
-        for (size_t i = 0; i < pares[t].size(); i++) {
-            cout << ' ' << pares[t][i].first << "," << pares[t][i].second;
+    
+    for (int i = m1; i <= m2;i++){
+        cout << 'C' << i;
+        for(size_t j = 0; j < pares[i].size(); j++){
+            cout << ' ' << pares[i][j].first << ',' << pares[i][j].second;
         }
         cout << '\n';
     }
+
+
     return 0;
+    
 }
